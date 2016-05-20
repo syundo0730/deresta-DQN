@@ -1,0 +1,9 @@
+.idea
+
+*.json
+*.jpg
+*.mp4
+*.pyc
+*.pickle
+*.caffemodel
+*.log
