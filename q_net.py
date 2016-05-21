@@ -15,10 +15,9 @@ class QNet:
     data_size = 10**5  # Data size of history. original: 10^6
     hist_size = 1 #original: 4
 
-    def __init__(self, use_gpu, enable_controller, dim):
+    def __init__(self, use_gpu, num_of_actions, dim):
         self.use_gpu = use_gpu
-        self.num_of_actions = len(enable_controller)
-        self.enable_controller = enable_controller
+        self.num_of_actions = num_of_actions
         self.dim = dim
 
         print("Initializing Q-Network...")
@@ -40,7 +39,7 @@ class QNet:
 
         # History Data :  D=[s, a, r, s_dash, end_episode_flag]
         self.d = [np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
-                  np.zeros(self.data_size, dtype=np.uint8),
+                  np.zeros((self.data_size, 5), dtype=np.uint8),  # アクションの種類は5種類
                   np.zeros((self.data_size, 1), dtype=np.int8),
                   np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
                   np.zeros((self.data_size, 1), dtype=np.bool)]
@@ -114,7 +113,7 @@ class QNet:
                 replay_index = np.random.randint(0, self.data_size, (self.replay_size, 1))
 
             s_replay = np.ndarray(shape=(self.replay_size, self.hist_size, self.dim), dtype=np.float32)
-            a_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.uint8)
+            a_replay = np.ndarray(shape=(self.replay_size, 5), dtype=np.uint8)
             r_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.float32)
             s_dash_replay = np.ndarray(shape=(self.replay_size, self.hist_size, self.dim), dtype=np.float32)
             episode_end_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.bool)
@@ -152,27 +151,25 @@ class QNet:
 
         if np.random.rand() < epsilon:
             index_action = np.random.randint(0, self.num_of_actions)
-            index_actions = [np.random.randint(5 * i, 5 * (i + 1)) for i in range(5)]
             print(" Random")
         else:
             if self.use_gpu >= 0:
                 index_action = np.argmax(q.get())
-                index_actions = [np.argmax(_q) for _q in np.split(q.get()[0], 5)]
             else:
                 index_action = np.argmax(q)
-                index_actions = [np.argmax(_q) for _q in np.split(q[0], 5)]
             print("#Greedy")
-        print(self.indexes_to_action(index_actions))
         return self.index_to_action(index_action), q
 
     def target_model_update(self):
         self.model_target = copy.deepcopy(self.model)
 
     def index_to_action(self, index_of_action):
-        return self.enable_controller[index_of_action]
-
-    def indexes_to_action(self, index_of_actions):
-        return [self.enable_controller[index_of_action] for index_of_action in index_of_actions]
+        action = [0, 0, 0, 0, 0]
+        index = index_of_action
+        for i in range(5):
+            action[i] = index % 5
+            index = index / 5
+        return action
 
     def action_to_index(self, action):
-        return self.enable_controller.index(action)
+        return action[0] + action[1] * 5 + action[2] * 25 + action[3] * 125 + action[4] * 625

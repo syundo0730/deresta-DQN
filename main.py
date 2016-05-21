@@ -12,33 +12,46 @@ windowname = "CinderellaStage"
 
 class Game:
     def __init__(self):
-        self.capture = cv2.VideoCapture('anzu.mp4')
-        self.width = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.height = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.play_time = 10
+        self.capture = None
+        self.width = 0
+        self.height = 0
 
         cv2.namedWindow(windowname, cv2.WINDOW_NORMAL)
-
         notes_array = NotesLoader(195, 4590).load("cm_anzu_master.json")
         self.evaluator = ScoreEvaluator(notes_array)
 
     def __del__(self):
         self.capture.release()
         cv2.destroyAllWindows()
-        cv2.destroyAllWindows()
+
+    def init_game(self):
+        if self.capture is not None and self.capture.isOpened():
+            self.capture.release()
+        self.capture = cv2.VideoCapture('anzu.mp4')
+        self.width = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.height = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+        self.evaluator.reset()
 
     def start(self, player):
-        while True:
-            if self.capture.isOpened():
-                # capture frame
-                ret, frame = self.capture.read()
-                if not ret:
-                    break
-                time = self.capture.get(cv2.CAP_PROP_POS_MSEC)
-                print("Time ms: %d" % time)
-                self.update(frame, time, player, False)
-                cv2.imshow(windowname, frame)
-            else:
-                self.update(None, 0, player, True)
+        # Run game {play_time} times
+        for i in range(self.play_time):
+            self.init_game()
+            # Start game
+            while True:
+                print("{0} th Game".format(i+1))
+                if self.capture.isOpened():
+                    # capture frame
+                    ret, frame = self.capture.read()
+                    if not ret:
+                        break
+                    time = self.capture.get(cv2.CAP_PROP_POS_MSEC)
+                    print("Time ms: %d" % time)
+                    self.update(frame, time, player, False)
+                    cv2.imshow(windowname, frame)
+                else:
+                    self.update(None, 0, player, True)
 
     def update(self, frame, time, player, end_episode):
         if frame is not None:
@@ -110,28 +123,23 @@ class Player:
             self.set_commands_from_action(action)
             with open(self.log_file, 'w') as the_file:
                 the_file.write('cycle, episode_reward_sum \n')
-
-            return action
         else:
             self.cycle_counter += 1
             self.reward_sum += reward
 
             if end_episode:
                 self.agent.agent_end(reward)
-                action = self.agent.agent_start(observation)  # TODO
-                self.set_commands_from_action(action)
                 with open(self.log_file, 'a') as the_file:
                     the_file.write(str(self.cycle_counter) +
                                    ',' + str(self.reward_sum) + '\n')
                 self.reward_sum = 0
-                return action
             else:
                 action, eps, q_now, obs_array = self.agent.agent_step(reward, observation)
                 self.set_commands_from_action(action)
                 self.agent.agent_step_update(reward, action, eps, q_now, obs_array)
-                return action
 
 if __name__ == "__main__":
     game = Game()
     player = Player()
     game.start(player)
+
