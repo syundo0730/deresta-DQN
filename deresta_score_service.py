@@ -7,15 +7,24 @@ class ScoreEvaluator:
         self.time = 0
         self.commands = ["none", "none", "none", "none", "none"]
 
+    def reset(self):
+        # reset all pad states
+        for pad in self.pad_states:
+            pad.reset()
+        self.time = 0
+        self.commands = ["none", "none", "none", "none", "none"]
+
     def update(self, commands, time):
         self.commands = commands
         self.time = time
+        # TODO: zipを使って書き換えられる
         for i in range(5):
             self.pad_states[i].update(self.commands[i], self.time)
 
     def get_scores(self):
         scores = []
         for i in range(5):
+            # TODO: zipを使って書き換えられる
             scores.append(self.pad_states[i].get_score(self.commands[i], self.time))
         return scores
 
@@ -24,11 +33,15 @@ class ScoreEvaluator:
 
 class PadState:
     def __init__(self, notes):
-        self.hit_notes = HitNotes(notes)
+        self.hit_note = HitNote(notes)
+        self.is_pressed = False
+
+    def reset(self):
+        self.hit_note.index = 0
         self.is_pressed = False
 
     def update(self, command, time):
-        self.hit_notes.update(time)
+        self.hit_note.update(time)
         self.update_press_state(command)
 
     def update_press_state(self, command):
@@ -42,7 +55,7 @@ class PadState:
             self.is_pressed = False
 
     def get_score(self, command, timestamp):
-        note = self.hit_notes.get_note()
+        note = self.hit_note.get_note()
 
         if note.start - 100.0 <= timestamp <= note.start:
             if note.is_type_normal():
@@ -89,11 +102,11 @@ class PadState:
 
         return 0
 
-class HitNotes:
+class HitNote:
     def __init__(self, notes):
         self.notes = notes
-        self.index = 0
         self.notes_len = len(notes)
+        self.index = 0
 
     def update(self, time):
         while True:

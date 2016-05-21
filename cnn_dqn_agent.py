@@ -11,21 +11,12 @@ from q_net import QNet
 
 
 class CnnDqnAgent(object):
-    policy_frozen = False
+    policy_frozen = False  # 学習をやめて、実行だけしたいときはTrueにする
     epsilon_delta = 1.0 / 10 ** 4.4
     min_eps = 0.1
 
     # press, up, down, left, right, none
-    # actions = ["press0", "up0", "down0", "left0", "right0",
-    #            "press1", "up1", "down1", "left1", "right1",
-    #            "press2", "up2", "down2", "left2", "right2",
-    #            "press3", "up3", "down3", "left3", "right3",
-    #            "press4", "up4", "down4", "left4", "right4"]
-    actions = [0, 1, 2, 3, 4,
-               5, 6, 7, 8, 9,
-               10, 11, 12, 13, 14,
-               15, 16, 17, 18, 19,
-               20, 21, 22, 23, 24]
+    num_of_actions = 5 ** 5
 
     cnn_feature_extractor = 'alexnet_feature_extractor.pickle'
     model = 'bvlc_alexnet.caffemodel'
@@ -48,7 +39,7 @@ class CnnDqnAgent(object):
 
         self.time = 0
         self.epsilon = 1.0  # Initial exploratoin rate
-        self.q_net = QNet(self.use_gpu, self.actions, self.q_net_input_dim)
+        self.q_net = QNet(self.use_gpu, self.num_of_actions, self.q_net_input_dim)
 
     def agent_start(self, observation):
         obs_array = np.r_[self.feature_extractor.feature(observation["image"]), observation["pad_states"]]
@@ -126,7 +117,8 @@ class CnnDqnAgent(object):
         else:
             q_max = np.max(q_now)
 
-        print('Step:%d  Action:%d  Reward:%f  Epsilon:%.6f  Q_max:%3f' % (self.time, self.q_net.action_to_index(action), reward, eps, q_max))
+        print('Step:%d  Reward:%f  Epsilon:%.6f  Q_max:%3f' % (self.time, reward, eps, q_max))
+        print('Action: {0}'.format(action))
 
         # Updates for next step
         self.last_observation = obs_array
