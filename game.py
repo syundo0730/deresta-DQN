@@ -20,7 +20,7 @@ class Game:
             self.init_game()
             # Start game
             while True:
-                print("{0} th Game".format(i+1))
+                print("Game: {0}".format(i+1))
                 frame, time, is_last = self.game_viewer.read()
                 if frame is None:
                     break
