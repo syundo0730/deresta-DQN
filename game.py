@@ -4,10 +4,10 @@ import cv2
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, note_file_name, bpm, offset):
         self.play_time = 10
         self.game_viewer = GameViewer()
-        notes_array = NotesLoader(195, 4590).load("cm_anzu_master.json")
+        notes_array = NotesLoader(bpm, offset).load(note_file_name)
         self.evaluator = ScoreEvaluator(notes_array)
 
     def init_game(self):
