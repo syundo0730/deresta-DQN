@@ -15,9 +15,11 @@ class QNet:
     data_size = 10**5  # Data size of history. original: 10^6
     hist_size = 1 #original: 4
 
-    def __init__(self, use_gpu, num_of_actions, dim):
+    def __init__(self, use_gpu, num_of_action_type, num_of_pad, dim):
         self.use_gpu = use_gpu
-        self.num_of_actions = num_of_actions
+        self.num_of_action_type = num_of_action_type
+        self.num_of_pad = num_of_pad
+        self.num_of_actions = num_of_action_type * num_of_pad
         self.dim = dim
 
         print("Initializing Q-Network...")
@@ -39,7 +41,7 @@ class QNet:
 
         # History Data :  D=[s, a, r, s_dash, end_episode_flag]
         self.d = [np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
-                  np.zeros((self.data_size, 5), dtype=np.uint8),  # アクションの種類は5種類
+                  np.zeros((self.data_size, self.num_of_pad), dtype=np.uint8),
                   np.zeros((self.data_size, 1), dtype=np.int8),
                   np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
                   np.zeros((self.data_size, 1), dtype=np.bool)]
@@ -71,8 +73,9 @@ class QNet:
             else:
                 tmp_ = reward[i]
 
-            action_index = self.action_to_index(action[i])
-            target[i, action_index] = tmp_
+            action_indexes = self.action_to_indexes(action[i])
+            for index in action_indexes:
+                target[i, index] = tmp_
 
         # TD-error clipping
         if self.use_gpu >= 0:
@@ -113,7 +116,7 @@ class QNet:
                 replay_index = np.random.randint(0, self.data_size, (self.replay_size, 1))
 
             s_replay = np.ndarray(shape=(self.replay_size, self.hist_size, self.dim), dtype=np.float32)
-            a_replay = np.ndarray(shape=(self.replay_size, 5), dtype=np.uint8)
+            a_replay = np.ndarray(shape=(self.replay_size, self.num_of_pad), dtype=np.uint8)
             r_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.float32)
             s_dash_replay = np.ndarray(shape=(self.replay_size, self.hist_size, self.dim), dtype=np.float32)
             episode_end_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.bool)
@@ -150,26 +153,21 @@ class QNet:
         q = q.data
 
         if np.random.rand() < epsilon:
-            index_action = np.random.randint(0, self.num_of_actions)
             print(" Random")
+            action = [np.random.randint(0, self.num_of_action_type) for i in range(self.num_of_pad)]
         else:
-            if self.use_gpu >= 0:
-                index_action = np.argmax(q.get())
-            else:
-                index_action = np.argmax(q)
             print("#Greedy")
-        return self.index_to_action(index_action), q
+            if self.use_gpu >= 0:
+                action = self.indexes_to_action([np.argmax(sq) for sq in np.split(q.get()[0], self.num_of_pad)])
+            else:
+                action = self.indexes_to_action([np.argmax(sq) for sq in np.split(q[0], self.num_of_pad)])
+        return action, q
 
     def target_model_update(self):
         self.model_target = copy.deepcopy(self.model)
 
-    def index_to_action(self, index_of_action):
-        action = [0, 0, 0, 0, 0]
-        index = index_of_action
-        for i in range(5):
-            action[i] = index % 5
-            index = index / 5
-        return action
+    def indexes_to_action(self, indexs_of_action):
+        return [index % self.num_of_action_type for index in indexs_of_action]
 
-    def action_to_index(self, action):
-        return action[0] + action[1] * 5 + action[2] * 25 + action[3] * 125 + action[4] * 625
+    def action_to_indexes(self, action):
+        return [self.num_of_action_type * i + a for (i, a) in enumerate(action)]

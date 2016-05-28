@@ -20,7 +20,7 @@ class AgentController:
         return self.commands
 
     def set_commands_from_action(self, action):
-        command_candidate = ["press", "up", "right", "left", "none"]
+        command_candidate = ["press", "up", "down", "right", "left", "none"]
         self.commands = [command_candidate[a] for a in action]
 
     def update(self, message):
