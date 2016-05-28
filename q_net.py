@@ -2,6 +2,8 @@
 
 import copy
 import numpy as np
+import six.moves.cPickle as pickle
+import os
 from chainer import cuda, FunctionSet, Variable, optimizers
 import chainer.functions as F
 
@@ -13,7 +15,7 @@ class QNet:
     replay_size = 32  # Replay (batch) size
     target_model_update_freq = 10**4  # Target update frequancy. original: 10^4
     data_size = 10**5  # Data size of history. original: 10^6
-    hist_size = 1 #original: 4
+    hist_size = 4
 
     def __init__(self, use_gpu, num_of_action_type, num_of_pad, dim):
         self.use_gpu = use_gpu
@@ -22,15 +24,21 @@ class QNet:
         self.num_of_actions = num_of_action_type * num_of_pad
         self.dim = dim
 
-        print("Initializing Q-Network...")
+        print("Initializing Q-Network...\n")
 
-        hidden_dim = 256
-        self.model = FunctionSet(
-            l4=F.Linear(self.dim*self.hist_size, hidden_dim, wscale=np.sqrt(2)),
-            q_value=F.Linear(hidden_dim, self.num_of_actions,
-                             initialW=np.zeros((self.num_of_actions, hidden_dim),
-                                               dtype=np.float32))
-        )
+        self.q_net_filename = "q_net.pickle"
+        if os.path.exists(self.q_net_filename):
+            print("Loading Q-Network Model...\n")
+            self.model = self.load_model()
+        else:
+            hidden_dim = 256
+            self.model = FunctionSet(
+                l4=F.Linear(self.dim*self.hist_size, hidden_dim, wscale=np.sqrt(2)),
+                q_value=F.Linear(hidden_dim, self.num_of_actions,
+                                 initialW=np.zeros((self.num_of_actions, hidden_dim),
+                                                   dtype=np.float32))
+            )
+
         if self.use_gpu >= 0:
             self.model.to_gpu()
 
@@ -45,6 +53,12 @@ class QNet:
                   np.zeros((self.data_size, 1), dtype=np.int8),
                   np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
                   np.zeros((self.data_size, 1), dtype=np.bool)]
+
+    def load_model(self):
+        return pickle.load(open(self.q_net_filename, 'rb'))
+
+    def dump_model(self):
+        pickle.dump(self.model, open(self.q_net_filename, 'wb'))
 
     def forward(self, state, action, reward, state_dash, episode_end):
         num_of_batch = state.shape[0]
