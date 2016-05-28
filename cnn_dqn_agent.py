@@ -16,7 +16,8 @@ class CnnDqnAgent(object):
     min_eps = 0.1
 
     # press, up, down, left, right, none
-    num_of_actions = 5 ** 5
+    num_of_action_type = 6
+    num_of_pad = 5
 
     cnn_feature_extractor = 'alexnet_feature_extractor.pickle'
     model = 'bvlc_alexnet.caffemodel'
@@ -39,7 +40,7 @@ class CnnDqnAgent(object):
 
         self.time = 0
         self.epsilon = 1.0  # Initial exploratoin rate
-        self.q_net = QNet(self.use_gpu, self.num_of_actions, self.q_net_input_dim)
+        self.q_net = QNet(self.use_gpu, self.num_of_action_type, self.num_of_pad, self.q_net_input_dim)
 
     def agent_start(self, observation):
         obs_array = np.r_[self.feature_extractor.feature(observation["image"]), observation["pad_states"]]

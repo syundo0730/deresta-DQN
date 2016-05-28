@@ -18,16 +18,11 @@ class ScoreEvaluator:
     def update(self, commands, time):
         self.commands = commands
         self.time = time
-        # TODO: zipを使って書き換えられる
-        for i in range(5):
-            self.pad_states[i].update(self.commands[i], self.time)
+        for (pad_state, command) in zip(self.pad_states, self.commands):
+            pad_state.update(command, self.time)
 
     def get_scores(self):
-        scores = []
-        for i in range(5):
-            # TODO: zipを使って書き換えられる
-            scores.append(self.pad_states[i].get_score(self.commands[i], self.time))
-        return scores
+        return [pad_state.get_score(command, self.time) for (pad_state, command) in zip(self.pad_states, self.commands)]
 
     def get_pad_states(self):
         return [1 if pad_state.is_pressed else 0 for pad_state in self.pad_states]
