@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import json
 
+
 class ScoreEvaluator:
     def __init__(self, notes_array):
         self.pad_states = [PadState(notes) for notes in notes_array]
