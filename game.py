@@ -4,9 +4,9 @@ import cv2
 
 
 class Game:
-    def __init__(self, note_file_name, bpm, offset):
+    def __init__(self, note_file_name, video_file_name, bpm, offset):
         self.play_time = 10
-        self.game_viewer = GameViewer()
+        self.game_viewer = GameViewer(video_file_name)
         notes_array = NotesLoader(bpm, offset).load(note_file_name)
         self.evaluator = ScoreEvaluator(notes_array)
 

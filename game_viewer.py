@@ -1,10 +1,10 @@
-from deresta_score_service import ScoreEvaluator, NotesLoader
 import cv2
 import numpy as np
 
 
 class GameViewer():
-    def __init__(self):
+    def __init__(self, video_file_name):
+        self.video_file_name = video_file_name
         self.capture = None
         self.width = 0
         self.height = 0
@@ -20,7 +20,7 @@ class GameViewer():
     def init(self):
         if self.capture is not None and self.capture.isOpened():
             self.capture.release()
-        self.capture = cv2.VideoCapture('anzu.mp4')
+        self.capture = cv2.VideoCapture(self.video_file_name)
         self.width = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.height = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.frame_num = self.capture.get(cv2.CAP_PROP_FRAME_COUNT)
